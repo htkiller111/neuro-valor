@@ -14,6 +14,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -71,13 +72,17 @@ public class Tools {
 		}
 	}
 
-	private static final float[] CHANGE_LEVELS = {0.1f/100}; //{0.1f/100, 0.5f/100, 1.0f/100, 2.0f/100, 5.0f/100, 10.0f/100};
+	private static final float[] CHANGE_LEVELS = /*{0.1f/100}; */ {0.1f/100, 0.5f/100, 1.0f/100, 2.0f/100, 5.0f/100, 10.0f/100};
 	
 	private static final int PROBABILITY_INDICATOR_LENGTH = 50;
 	private static final int LEGEND_WIDTH = 80;
 	private static final int LEGEND_FONT_HEIGHT = 20;
-		
+	
 	public static float[] loadMSTToSubsequentValues(File file) throws IOException {
+		return loadMSTToSubsequentValues(file, Integer.MAX_VALUE);
+	}
+	
+	public static float[] loadMSTToSubsequentValues(File file, int limit) throws IOException {
 		List<Float> vs = new ArrayList<Float>();
 		BufferedReader r = new BufferedReader(new FileReader(file));
 		while (true) {
@@ -87,6 +92,9 @@ public class Tools {
 			}
 			if (!s.startsWith("<")) {
 				vs.add(Float.valueOf(s.split(",")[5]));
+				if (vs.size() >= limit) {
+					break;
+				}
 			}
 		}
 		float[] ret = new float[vs.size()];
@@ -258,6 +266,14 @@ public class Tools {
 		return ret;
 	}
 	
+	public static double[] computeChanges(float[] vs) {
+		double[] ret = new double[vs.length-1];
+		for (int i=1; i<ret.length; ++i) {
+			ret[i] = vs[i]/vs[i-1]-1;
+		}
+		return ret;
+	}
+	
 	public static int[] computeChangeLevels(float[] vs) {
 		int[] ret = new int[vs.length-1];
 		for (int i=1; i<ret.length; ++i) {
@@ -380,6 +396,22 @@ public class Tools {
 		return ret;
 	}
 
+	public static double[] toDoubleArray(float[] a) {
+		double[] ret = new double[a.length];
+		for (int i=0; i<a.length; ++i) {
+			ret[i] = a[i];
+		}
+		return ret;
+	}
+	
+	public static float[] toFloatArray(double[] a) {
+		float[] ret = new float[a.length];
+		for (int i=0; i<a.length; ++i) {
+			ret[i] = (float) a[i];
+		}
+		return ret;
+	}
+	
 	public static String formatChange(float c) {
 		float ret = ((int) 10000*c)/100.0f;
 		if (ret > 0) {
@@ -391,6 +423,43 @@ public class Tools {
 
 	public static String formatChange(float f, float g) {
 		return formatChange(f/g-1);
+	}
+
+	public static double[] normalizeChanges(double[] original, double d) {
+		double[] changes = Arrays.copyOf(original, original.length);
+		double border = 0.0;
+		for (double c: changes) {
+			border = Math.max(border, Math.abs(c));
+		}
+		border /= (1-2.0*d)/2.0;
+		for (int i=0; i<changes.length; ++i) {
+			changes[i] = 0.5+changes[i]/border;
+		}
+		return changes;
+	}
+
+	public static List<Double> asList(final double[] vs) {
+		return new AbstractList<Double>() {
+
+			@Override
+			public Double get(int index) {
+				return vs[index];
+			}
+
+			@Override
+			public int size() {
+				return vs.length;
+			}
+			
+		};
+	}
+
+	public static float[] generateInLoop(int length, double... schema) {
+		float[] ret = new float[length];
+		for (int i=0; i<ret.length; ++i) {
+			ret[i] = (float) schema[i % schema.length];
+		}
+		return ret;
 	}
 
 }
