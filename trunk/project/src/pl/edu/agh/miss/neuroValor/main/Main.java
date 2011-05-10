@@ -9,6 +9,7 @@ import java.util.List;
 import pl.edu.agh.miss.neuroValor.NeuronNet;
 import pl.edu.agh.miss.neuroValor.genetics.GeneticAlgorithmSettings;
 import pl.edu.agh.miss.neuroValor.genetics.Genetizer;
+import pl.edu.agh.miss.neuroValor.genetics.Genetizer.EvolvableFitness;
 import pl.edu.agh.miss.neuroValor.predictor.NetStructureConfigurationGenotype;
 import pl.edu.agh.miss.neuroValor.predictor.NeuronNetFitnessEstimator;
 import pl.edu.agh.miss.neuroValor.tools.Tools;
@@ -25,7 +26,7 @@ public class Main {
 		float[] vs = Tools.loadMSTToSubsequentValues(new File("data"+File.separator+"OPTIMUS.mst"));
 		double[] vsc = Tools.toDoubleArray(Tools.toFloatArray(Tools.computeChangeLevels(vs)));
 		
-		final double[] nvsc = Tools.toDoubleArray(Tools.generateInLoop(200, 0.2, 0.8, 0.8));//Tools.normalizeChanges(vsc, 0.2);
+		final double[] nvsc = Tools.toDoubleArray(Tools.generateInLoop(70, 0.4, 0.6));//Tools.normalizeChanges(vsc, 0.2);
 		
 		//Tools.showPlot(Tools.constructPlot(vs, 200), "vs");
 		//Tools.showPlot(Tools.constructPlot(Tools.toFloatArray(vsc), 200), "vsc");
@@ -82,8 +83,10 @@ public class Main {
 			g.step();
 		}
 
-		NeuronNet bestNN = g.getGenerationFitnesses().get(0).getEvolvable().buildNeuronNet();
-		
+		EvolvableFitness<NetStructureConfigurationGenotype> bestFitness = g.getGenerationFitnesses().get(0);
+		System.out.println("-) BEST FITNESS: "+bestFitness);
+		NeuronNet bestNN = bestFitness.getEvolvable().buildNeuronNet();
+		System.out.println("Check: "+estimator.estimate(bestNN));
 		double[] prediction = new double[2*nvsc.length];
 		for (int i=0; i<nvsc.length; ++i) {
 			prediction[i] = nvsc[i];
