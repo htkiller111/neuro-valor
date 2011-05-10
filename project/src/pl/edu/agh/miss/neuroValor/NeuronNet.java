@@ -3,70 +3,54 @@ package pl.edu.agh.miss.neuroValor;
 import java.util.ArrayList;
 import java.util.List;
 
-import pl.edu.agh.miss.neuroValor.functions.DifferentiableFunction;
+import pl.edu.agh.miss.neuroValor.helpers.LayerStructureConfiguration;
+import pl.edu.agh.miss.neuroValor.helpers.NetStructureConfiguration;
 import pl.edu.agh.miss.neuroValor.nodes.InnerNeuron;
 import pl.edu.agh.miss.neuroValor.nodes.Neuron;
 import pl.edu.agh.miss.neuroValor.nodes.OutputProducer;
 import pl.edu.agh.miss.neuroValor.nodes.Synapse;
 import pl.edu.agh.miss.neuroValor.nodes.ValueHolder;
+import pl.edu.agh.miss.neuroValor.tools.Tools;
 
 public class NeuronNet {
 
 	private List<List<InnerNeuron>> innerLayers;
 	private List<ValueHolder> inputLayer;
 	private ArrayList<Neuron> outputLayer;
-	private double learningRate;
 
-	public NeuronNet(int inputs, int outputs, int... inners) {
-		this(0.2, DifferentiableFunction.SIGMOID_ONE, DifferentiableFunction.SIGMOID_ONE, inputs, outputs, inners);
-	}
-	
-	public NeuronNet(double learningRate, DifferentiableFunction innerActivation, DifferentiableFunction outputActivation, int inputs, int outputs, int... inners) {
-		
-		this.setLearningRate(learningRate);
+	public NeuronNet(NetStructureConfiguration c) {
 		
 		inputLayer = new ArrayList<ValueHolder>();
-		for (int i=0; i<inputs; ++i) {
+		for (int i=0; i<c.getInputs(); ++i) {
 			inputLayer.add(new ValueHolder());
 		}
 		
 		List<? extends OutputProducer> synapsesFrom = inputLayer;
 		
 		innerLayers = new ArrayList<List<InnerNeuron>>();
-		for (int i=0; i<inners.length; ++i) {
+		for (LayerStructureConfiguration i: c.getInners()) {
 			List<InnerNeuron> il = new ArrayList<InnerNeuron>();
 			innerLayers.add(il);
 			
-			for (int j=0; j<inners[i]; ++j) {
+			for (int j=0; j<i.getNeuronCount(); ++j) {
 				List<Synapse> ss = new ArrayList<Synapse>();
 				for (OutputProducer sf: synapsesFrom) {
 					ss.add(new Synapse(sf));
 				}
-				il.add(new InnerNeuron(innerActivation, ss));
+				il.add(new InnerNeuron(i.getActivation(), ss, i.getMomentum(), i.getLearningRate()));
 			}
 			
 			synapsesFrom = il;
 		}
 		
 		outputLayer = new ArrayList<Neuron>();
-		for (int i=0; i<outputs; ++i) {
+		for (int j=0; j<c.getOutputs().getNeuronCount(); ++j) {
 			List<Synapse> ss = new ArrayList<Synapse>();
 			for (OutputProducer sf: synapsesFrom) {
 				ss.add(new Synapse(sf));
 			}
-			outputLayer.add(new Neuron(outputActivation, ss));
+			outputLayer.add(new Neuron(c.getOutputs().getActivation(), ss, c.getOutputs().getMomentum(), c.getOutputs().getLearningRate()));
 		}
-	}
-
-	public double[] compute(double... args) {
-		
-		setInputValues(args);
-		
-		for (List<InnerNeuron> layer: innerLayers) {
-			cacheCurrentOutputsIn(layer);
-		}
-		
-		return computeCurrentOutputs();
 	}
 
 	private double[] computeCurrentOutputs() {
@@ -84,6 +68,13 @@ public class NeuronNet {
 			vh.setValue(ds[++i]);
 		}
 	}
+	
+	private void setInputValues(List<Double> ds) {
+		int i=-1;
+		for (ValueHolder vh: inputLayer) {
+			vh.setValue(ds.get(++i));
+		}
+	}
 
 	private void cacheCurrentOutputsIn(List<InnerNeuron> layer) {
 		for (InnerNeuron in: layer) {
@@ -91,8 +82,7 @@ public class NeuronNet {
 		}
 	}
 
-	public void learnOn(double[] expected, double... args) {
-		
+	public void learnOn(List<Double> args, List<Double> expected) {
 		double[] computed = compute(args);
 		
 		double[][][] changes = new double[innerLayers.size()+1][][];
@@ -102,9 +92,9 @@ public class NeuronNet {
 		dfis[innerLayers.size()] = new double[outputLayer.size()];
 		double[] lastErrors = new double[outputLayer.size()];
 		for (int i=0; i<outputLayer.size(); ++i) {
-			double e = outputLayer.get(i).getActivation().deriveComputation(computed[i]) * (expected[i] - computed[i]);
+			double e = outputLayer.get(i).getActivation().deriveComputation(computed[i]) * (expected.get(i) - computed[i]);
 			lastErrors[i] = e;
-			double dfi = learningRate * e;
+			double dfi = outputLayer.get(i).getLearningRate() * e;
 			dfis[innerLayers.size()][i] = dfi;
 			changes[innerLayers.size()][i] = new double[outputLayer.get(i).getSynapses().size()];
 			for (int j=0; j<changes[innerLayers.size()][i].length; ++j) {
@@ -126,7 +116,7 @@ public class NeuronNet {
 				}
 				double e = n.getActivation().deriveComputation(n.getOutput()) * g;
 				errors[j] = e;
-				double dfi = learningRate * e;
+				double dfi = n.getLearningRate() * e;
 				dfis[i][j] = dfi;
 				changes[i][j] = new double[n.getSynapses().size()];
 				for (int k=0; k<changes[i][j].length; ++k) {
@@ -144,7 +134,7 @@ public class NeuronNet {
 				n.setThreshold(n.getThreshold()+dfis[i][j]);
 				for (int k=0; k<n.getSynapses().size(); ++k) {
 					Synapse s = n.getSynapses().get(k);
-					s.setWeight(s.getWeight()+changes[i][j][k]);
+					s.changeWeight(changes[i][j][k], n.getMomentum());
 				}
 			}
 		}
@@ -154,63 +144,45 @@ public class NeuronNet {
 			n.setThreshold(n.getThreshold()+dfis[innerLayers.size()][j]);
 			for (int k=0; k<n.getSynapses().size(); ++k) {
 				Synapse s = n.getSynapses().get(k);
-				s.setWeight(s.getWeight()+changes[innerLayers.size()][j][k]);
+				s.changeWeight(changes[innerLayers.size()][j][k], n.getMomentum());
 			}
 		}
+	}
+	
+	public void learnOn(double[] args, double[] expected) {
+		learnOn(Tools.asList(args), Tools.asList(expected));
+	}
+
+	public int getInputCount() {
+		return inputLayer.size();
+	}
+
+	@Override
+	public String toString() {
+		String inners = " -> ";
+		for (List<InnerNeuron> i: innerLayers) {
+			inners += i.size()+" -> ";
+		}
+		return inputLayer.size()+inners+outputLayer.size();
+	}
+
+	public double[] compute(double... args) {
+		setInputValues(args);
 		
-//		double[] previousDeltas = new double[outputLayer.size()];
-//		List<? extends Neuron> previousLayer = outputLayer;
-//		for (int i=0; i<outputLayer.size(); ++i) {
-//			previousDeltas[i] = computed[i] - expected[i];
-//		}
-//		
-//		double[][] deltasCache = new double[innerLayers.size()+1][];
-//		deltasCache[innerLayers.size()] = previousDeltas;
-//		
-//		for (int b=innerLayers.size()-1; b>=0; --b) {
-//			List<InnerNeuron> layer = innerLayers.get(b);
-//			double[] deltas = new double[layer.size()];
-//			for (int i=0; i<layer.size(); ++i) {
-//				double delta = 0.0;
-//				for (int j=0; j<previousDeltas.length; ++j) {
-//					delta += previousLayer.get(j).getSynapses().get(i).getWeight() * previousDeltas[j];
-//				}
-//				deltas[i] = delta;
-//			}
-//			
-//			deltasCache[b] = deltas;
-//			
-//			previousDeltas = deltas;
-//			previousLayer = layer;
-//		}
-//		
-//		for (int i=0; i<innerLayers.size(); ++i) {
-//			double[] deltas = deltasCache[i];
-//			
-//			List<InnerNeuron> innerLayer = innerLayers.get(i);
-//			for (int j=0; j<innerLayer.size(); ++j) {
-//				InnerNeuron in = innerLayer.get(j);
-//				for (Synapse s: in.getSynapses()) {
-//					s.setWeight(s.getWeight()+learningRate*deltas[j]*in.getActivation().deriveComputation(in.getOutput())*s.getFrom().getOutput());
-//				}
-//			}
-//		}
-//		
-//		double[] deltas = deltasCache[innerLayers.size()];
-//		for (int i=0; i<outputLayer.size(); ++i) {
-//			Neuron n = outputLayer.get(i);
-//			for (Synapse s: n.getSynapses()) {
-//				s.setWeight(s.getWeight()+learningRate*deltas[i]*n.getActivation().deriveComputation(computed[i])*s.getFrom().getOutput());
-//			}
-//		}
+		for (List<InnerNeuron> layer: innerLayers) {
+			cacheCurrentOutputsIn(layer);
+		}
+		
+		return computeCurrentOutputs();
 	}
-
-	public void setLearningRate(double learningRate) {
-		this.learningRate = learningRate;
+	
+	public double[] compute(List<Double> args) {
+		setInputValues(args);
+		
+		for (List<InnerNeuron> layer: innerLayers) {
+			cacheCurrentOutputsIn(layer);
+		}
+		
+		return computeCurrentOutputs();
 	}
-
-	public double getLearningRate() {
-		return learningRate;
-	}
-
 }

@@ -8,8 +8,8 @@ public class InnerNeuron extends Neuron {
 
 	private double outputCache;
 	
-	public InnerNeuron(DifferentiableFunction activation, List<Synapse> inputs) {
-		super(activation, inputs);
+	public InnerNeuron(DifferentiableFunction activation, List<Synapse> inputs, double momentum, double learningSpeed) {
+		super(activation, inputs, momentum, learningSpeed);
 	}
 	
 	public void cacheCurrentOutput() {

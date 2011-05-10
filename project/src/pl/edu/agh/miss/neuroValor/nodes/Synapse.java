@@ -4,22 +4,26 @@ public class Synapse {
 
 	private double weight;
 	private OutputProducer from;
+	private double previousChange;
 	
 	public Synapse(OutputProducer from) {
 		this.weight = Math.random()-0.5;
 		this.from = from;
-	}
-	
-	public void setWeight(double weight) {
-		this.weight = weight;
-	}
-
-	public double getWeight() {
-		return weight;
+		this.previousChange = 0;
 	}
 
 	public OutputProducer getFrom() {
 		return from;
+	}
+
+	public void changeWeight(double d, double momentum) {
+		double thisChange = d + momentum*previousChange;
+		weight += thisChange;
+		previousChange = thisChange;
+	}
+
+	public double getWeight() {
+		return weight;
 	}
 	
 }

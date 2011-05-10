@@ -6,14 +6,18 @@ import pl.edu.agh.miss.neuroValor.functions.DifferentiableFunction;
 
 public class Neuron implements OutputProducer {
 
-	protected List<Synapse> inputs;
-	protected DifferentiableFunction activation;
+	protected final List<Synapse> inputs;
+	protected final DifferentiableFunction activation;
 	protected double threshold;
+	private final double momentum;
+	private final double learningSpeed;
 	
-	public Neuron(DifferentiableFunction activation, List<Synapse> inputs) {
+	public Neuron(DifferentiableFunction activation, List<Synapse> inputs, double momentum, double learningSpeed) {
 		this.activation = activation;
 		this.inputs = inputs;
-		this.threshold = Math.random()*0.75+0.25;
+		this.threshold = 0.25+Math.random()*0.75;
+		this.momentum = momentum;
+		this.learningSpeed = learningSpeed;
 	}
 	
 	protected double gatherInput() {
@@ -47,5 +51,13 @@ public class Neuron implements OutputProducer {
 
 	public void setThreshold(double d) {
 		this.threshold = d;
+	}
+
+	public double getMomentum() {
+		return momentum;
+	}
+
+	public double getLearningRate() {
+		return learningSpeed;
 	}
 }
