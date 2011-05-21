@@ -91,7 +91,7 @@ public class Genetizer<T extends Evolvable<T>> {
 			if (Math.random() < settings.getCrossoverChance()) {
 				T secondParent = pickRandomFrom(parents).getEvolvable().copied();
 				for (int index: pickRandomIndices(child.getGenes().size(), child.getGenes().size()/2)) {
-					child.getGenes().set(index, secondParent.getGenes().get(index));
+					child.copyGene(secondParent, index);
 				}
 			}
 			for (Gene g: child.getGenes()) {

@@ -8,5 +8,6 @@ public interface Evolvable<T extends Evolvable<T>> extends Serializable {
 	public double computeFitness();
 	public List<Gene> getGenes();
 	public T copied();
+	public void copyGene(T from, int index);
 
 }
