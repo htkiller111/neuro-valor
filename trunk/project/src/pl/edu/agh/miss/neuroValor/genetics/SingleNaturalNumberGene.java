@@ -18,10 +18,17 @@ public class SingleNaturalNumberGene implements Gene {
 		if (value < 1) {
 			value = 1;
 		}
+		if (value > range) {
+			value = range;
+		}
 	}
 
 	public int getValue() {
 		return value;
+	}
+
+	public void setValue(int v) {
+		value = v;
 	}
 
 }

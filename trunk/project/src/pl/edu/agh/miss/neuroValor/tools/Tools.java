@@ -14,6 +14,8 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -72,36 +74,41 @@ public class Tools {
 		}
 	}
 
-	private static final float[] CHANGE_LEVELS = /*{0.1f/100}; */ {0.1f/100, 0.5f/100, 1.0f/100, 2.0f/100, 5.0f/100, 10.0f/100};
+	private static final float[] CHANGE_LEVELS = {0.1f/100}; // {0.1f/100, 0.5f/100, 1.0f/100, 2.0f/100, 5.0f/100, 10.0f/100};
 	
 	private static final int PROBABILITY_INDICATOR_LENGTH = 50;
 	private static final int LEGEND_WIDTH = 80;
 	private static final int LEGEND_FONT_HEIGHT = 20;
 	
-	public static float[] loadMSTToSubsequentValues(File file) throws IOException {
+	public static List<CandleStick> loadMSTToSubsequentValues(File file) throws IOException {
 		return loadMSTToSubsequentValues(file, Integer.MAX_VALUE);
 	}
 	
-	public static float[] loadMSTToSubsequentValues(File file, int limit) throws IOException {
-		List<Float> vs = new ArrayList<Float>();
+	public static List<CandleStick> loadMSTToSubsequentValues(File file, int limit) throws IOException {
+		List<CandleStick> vs = new ArrayList<CandleStick>();
 		BufferedReader r = new BufferedReader(new FileReader(file));
+		CandleStick before = new CandleStick(0.0, 0.0, 0.0, 0.0, 0.0, null);
 		while (true) {
 			String s = r.readLine();
 			if (s == null) {
 				break;
 			}
 			if (!s.startsWith("<")) {
-				vs.add(Float.valueOf(s.split(",")[5]));
+				String[] split = s.split(",");
+				double open = Double.valueOf(split[2]);
+				double high = Double.valueOf(split[3]);
+				double low = Double.valueOf(split[4]);
+				double close = Double.valueOf(split[5]);
+				double vol = Double.valueOf(split[6]);
+				CandleStick now = new CandleStick(open, high, low, close, vol, before);
+				before = now;
+				vs.add(now);
 				if (vs.size() >= limit) {
 					break;
 				}
 			}
 		}
-		float[] ret = new float[vs.size()];
-		for (int i=0; i<vs.size(); ++i) {
-			ret[i] = vs.get(i);
-		}
-		return ret;
+		return vs;
 	}
 
 	public static void showPlot(final BufferedImage image, String caption) {
@@ -458,6 +465,35 @@ public class Tools {
 		float[] ret = new float[length];
 		for (int i=0; i<ret.length; ++i) {
 			ret[i] = (float) schema[i % schema.length];
+		}
+		return ret;
+	}
+
+	public static int random(int from, int to) {
+		return (int) (Math.random()*(to-from)) + from;
+	}
+
+	public static double[] toArray(List<Double> list) {
+		double[] ret = new double[list.size()];
+		for (int i=0; i<ret.length; ++i) {
+			ret[i] = list.get(i);
+		}
+		return ret;
+	}
+
+	public static double[] toSignum(int[] changes) {
+		double[] ret = new double[changes.length];
+		for (int i=0; i<ret.length; ++i) {
+			ret[i] = changes[i] < 0 ? 0.0 : 1.0; 
+		}
+		return ret;
+	}
+
+	public static float[] toFloatArray(List<CandleStick> sticks, Method which) throws IllegalArgumentException, IllegalAccessException, InvocationTargetException {
+		float[] ret = new float[sticks.size()];
+		for (int i=0; i<sticks.size(); ++i) {
+			double r = (Double) which.invoke(sticks.get(i));
+			ret[i] = (float) r;
 		}
 		return ret;
 	}

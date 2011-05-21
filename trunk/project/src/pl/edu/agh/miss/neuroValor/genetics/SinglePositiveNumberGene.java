@@ -27,4 +27,8 @@ public class SinglePositiveNumberGene implements Gene {
 		return Double.toString(v);
 	}
 
+	public void setValue(double value) {
+		v = value;
+	}
+
 }

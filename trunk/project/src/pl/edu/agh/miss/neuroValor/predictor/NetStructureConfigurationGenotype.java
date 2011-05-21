@@ -120,4 +120,37 @@ public class NetStructureConfigurationGenotype implements Evolvable<NetStructure
 		"Second: s="+secondHiddenLayerSizeGene.getValue()+", m="+secondHiddenLayerMomentumGene.getValue()+", lr="+secondHiddenLayerLearningRateGene.getValue()+
 		"Output: m="+outputLayerMomentumGene.getValue()+", lr="+outputLayerLearningRateGene.getValue();
 	}
+
+	@Override
+	public void copyGene(NetStructureConfigurationGenotype from, int index) {
+		switch (index) {
+		case 0:
+			((SingleNaturalNumberGene) genes.get(0)).setValue(((SingleNaturalNumberGene) from.getGenes().get(0)).getValue());
+			break;
+		case 1:
+			((SingleNaturalNumberGene) genes.get(1)).setValue(((SingleNaturalNumberGene) from.getGenes().get(1)).getValue());
+			break;
+		case 2:
+			((SinglePositiveNumberGene) genes.get(2)).setValue(((SinglePositiveNumberGene) from.getGenes().get(2)).getValue());
+			break;
+		case 3:
+			((SinglePositiveNumberGene) genes.get(3)).setValue(((SinglePositiveNumberGene) from.getGenes().get(3)).getValue());
+			break;
+		case 4:
+			((SingleNaturalNumberGene) genes.get(4)).setValue(((SingleNaturalNumberGene) from.getGenes().get(4)).getValue());
+			break;
+		case 5:
+			((SinglePositiveNumberGene) genes.get(5)).setValue(((SinglePositiveNumberGene) from.getGenes().get(5)).getValue());
+			break;
+		case 6:
+			((SinglePositiveNumberGene) genes.get(6)).setValue(((SinglePositiveNumberGene) from.getGenes().get(6)).getValue());
+			break;
+		case 7:
+			((SinglePositiveNumberGene) genes.get(7)).setValue(((SinglePositiveNumberGene) from.getGenes().get(7)).getValue());
+			break;
+		case 8:
+			((SinglePositiveNumberGene) genes.get(8)).setValue(((SinglePositiveNumberGene) from.getGenes().get(8)).getValue());
+			break;
+		}
+	}
 }
