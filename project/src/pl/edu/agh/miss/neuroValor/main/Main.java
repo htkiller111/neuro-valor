@@ -30,22 +30,18 @@ public class Main {
 
 	private static final int NEURONNET_POPULATION_SIZE = 20;
 	
-	public static void main2(String[] args) throws Exception {
+	public static void main(String[] args) throws Exception {
 		
-		int next = 1;
-		int nextHop = 1;
-		final double[] temporal = new double[600];
-		for (int i=0; i<temporal.length; ++i) {
-			if (next == 0) {
-				next = 5+(int) (0.5+4*Math.sin(nextHop/7.0));
-				++nextHop;
-				temporal[i] = nextHop % 2;
-			} else {
-				--next;
-				temporal[i] = 1-nextHop % 2;
-			}
+		double[] mgts = new double[1200];
+		
+		int tau = 20;
+		for (int i=0; i<mgts.length; ++i) {
+			mgts[i] = i-1 < tau ? 0.5 : 0.9*mgts[i-1]+(0.2*mgts[i-1-tau])/(1+Math.pow(mgts[i-1-tau], 10.0));
 		}
-		
+		double[] stable = new double[1000];
+		System.arraycopy(mgts, mgts.length-stable.length, stable, 0, stable.length);
+		final double[] temporal = Tools.normalizeHalf(stable);
+
 		final int trainingPoints = 300;
 		
 		BasicNetworkEvaluator evaluator = new BasicNetworkEvaluator() {
@@ -62,10 +58,10 @@ public class Main {
 		RemoteComputationDispatcherConnection rc = new RemoteComputationDispatcherConnection("127.0.0.1", 44444);
 		List<BasicNetworkStructure> population = new ArrayList<BasicNetworkStructure>();
 		for (int i=0; i<NEURONNET_POPULATION_SIZE; ++i) {
-			population.add(new BasicNetworkStructure(evaluator, randomize(100, 0.2), randomize(75, 0.2), randomize(50, 0.2), false));
+			population.add(new BasicNetworkStructure(evaluator, randomize(100, 0.8), randomize(100, 0.8), randomize(100, 0.8), false));
 		}
 		
-		Genetizer<BasicNetworkStructure> genetizer = new Genetizer<BasicNetworkStructure>(new GeneticAlgorithmSettings(0.2, 0.05, 0.3, 1.0), population, rc);
+		Genetizer<BasicNetworkStructure> genetizer = new Genetizer<BasicNetworkStructure>(new GeneticAlgorithmSettings(0.2, 0.05, 0.3, 0.8), population, rc);
 		
 		while (true) {
 			genetizer.step();
@@ -95,7 +91,7 @@ public class Main {
 		
 		NeuralDataSet dataSet = new BasicNeuralDataSet(in, out);
 		Train train = new ResilientPropagation(nn, dataSet);
-		train.addStrategy(new StopTrainingStrategy(0.001, 10));
+		train.addStrategy(new StopTrainingStrategy(0.00001, 10));
 		train.addStrategy(new EndIterationsStrategy(100));
 		EncogUtility.trainToError(train, nn, dataSet, 0.000000001);
 		
@@ -130,7 +126,7 @@ public class Main {
 		return 1/sum;
 	}
 
-	public static void main(String[] args) throws IOException, ClassNotFoundException, SecurityException, NoSuchMethodException, IllegalArgumentException, IllegalAccessException, InvocationTargetException {
+	public static void main2(String[] args) throws IOException, ClassNotFoundException, SecurityException, NoSuchMethodException, IllegalArgumentException, IllegalAccessException, InvocationTargetException {
 			
 		List<CandleStick> sticks = Tools.loadMSTToSubsequentValues(new File("data/KREZUS.mst"));
 		sticks = sticks.subList(sticks.size()-500, sticks.size());
