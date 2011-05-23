@@ -103,6 +103,7 @@ public class Genetizer<T extends Evolvable<T>> {
 		}
 		nextGeneration.addAll(computationServer.execute(tasks));
 		fitnesses = nextGeneration;
+		Collections.sort(fitnesses);
 	}
 
 	public List<EvolvableFitness<T>> getGenerationFitnesses() {
