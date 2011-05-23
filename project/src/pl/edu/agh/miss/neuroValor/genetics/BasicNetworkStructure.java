@@ -80,4 +80,9 @@ public class BasicNetworkStructure implements Evolvable<BasicNetworkStructure> {
 			break;
 		}
 	}
+	
+	@Override
+	public String toString() {
+		return inputCountGene.getValue()+" -> "+firstCountGene.getValue()+" -> "+secondCountGene.getValue()+" -> 1 ("+(usingTanhGene.getValue() ? "Tanh" : "Sigmoid")+")";
+	}
 }
