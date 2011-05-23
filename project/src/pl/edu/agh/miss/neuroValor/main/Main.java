@@ -29,20 +29,21 @@ import com.jkgh.dee.client.RemoteComputationDispatcherConnection;
 public class Main {
 
 	private static final int NEURONNET_POPULATION_SIZE = 20;
+	private static final int EVALUATION_TRIES = 1;
 	
 	public static void main(String[] args) throws Exception {
 		
-		double[] mgts = new double[1200];
+		double[] mgts = new double[1000];
 		
 		int tau = 20;
 		for (int i=0; i<mgts.length; ++i) {
-			mgts[i] = i-1 < tau ? 0.5 : 0.9*mgts[i-1]+(0.2*mgts[i-1-tau])/(1+Math.pow(mgts[i-1-tau], 10.0));
+			mgts[i] = i-1 < tau ? 0.6 : 0.9*mgts[i-1]+(0.2*mgts[i-1-tau])/(1+Math.pow(mgts[i-1-tau], 10.0));
 		}
-		double[] stable = new double[1000];
+		double[] stable = new double[800];
 		System.arraycopy(mgts, mgts.length-stable.length, stable, 0, stable.length);
 		final double[] temporal = Tools.normalizeHalf(stable);
 
-		final int trainingPoints = 300;
+		final int trainingPoints = 200;
 		
 		BasicNetworkEvaluator evaluator = new BasicNetworkEvaluator() {
 
@@ -50,7 +51,11 @@ public class Main {
 
 			@Override
 			public double evalute(BasicNetworkStructure bns) {
-				return evaluateAndVisualize(bns, false, trainingPoints, temporal);
+				double ret = 0.0;
+				for (int i=0; i<EVALUATION_TRIES; ++i) {
+					ret += evaluateAndVisualize(bns, false, trainingPoints, temporal);
+				}
+				return ret/EVALUATION_TRIES;
 			}
 			
 		};
@@ -61,15 +66,19 @@ public class Main {
 			population.add(new BasicNetworkStructure(evaluator, randomize(100, 0.8), randomize(100, 0.8), randomize(100, 0.8), false));
 		}
 		
-		Genetizer<BasicNetworkStructure> genetizer = new Genetizer<BasicNetworkStructure>(new GeneticAlgorithmSettings(0.2, 0.05, 0.3, 0.8), population, rc);
+		Genetizer<BasicNetworkStructure> genetizer = new Genetizer<BasicNetworkStructure>(new GeneticAlgorithmSettings(0.5, 0.05, 0.5, 0.1), population, rc);
 		
-		while (true) {
+		for (int i=0; i<20; ++i) {
+			System.out.println("Generation "+i+":");
+			for (EvolvableFitness<BasicNetworkStructure> f: genetizer.getGenerationFitnesses()) {
+				System.out.println(f.getEvolvable()+" = "+f.getFitness());
+			}
 			genetizer.step();
-			EvolvableFitness<BasicNetworkStructure> best = genetizer.getGenerationFitnesses().get(0);
-			System.out.println("-----------------------------------------------------------");
-			System.out.println("Najlepsza siec ma theoretic fitness "+best.getFitness()+" i test fitness "+evaluateAndVisualize(best.getEvolvable(), true, trainingPoints, temporal));
-			System.in.read(new byte[4]);
 		}
+		
+		EvolvableFitness<BasicNetworkStructure> best = genetizer.getGenerationFitnesses().get(0);
+		System.out.println("-----------------------------------------------------------");
+		System.out.println("Najlepsza siec ma theoretic fitness "+best.getFitness()+" i test fitness "+evaluateAndVisualize(best.getEvolvable(), true, trainingPoints, temporal));
 	}
 	
 	private static int randomize(int from, double by) {
