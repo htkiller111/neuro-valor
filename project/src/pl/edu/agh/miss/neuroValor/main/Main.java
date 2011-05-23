@@ -33,15 +33,8 @@ public class Main {
 	
 	public static void main(String[] args) throws Exception {
 		
-		double[] mgts = new double[1000];
-		
-		int tau = 20;
-		for (int i=0; i<mgts.length; ++i) {
-			mgts[i] = i-1 < tau ? 0.6 : 0.9*mgts[i-1]+(0.2*mgts[i-1-tau])/(1+Math.pow(mgts[i-1-tau], 10.0));
-		}
-		double[] stable = new double[800];
-		System.arraycopy(mgts, mgts.length-stable.length, stable, 0, stable.length);
-		final double[] temporal = Tools.normalizeHalf(stable);
+		final double[] temporal = disturbedSine();
+		Tools.showPlot(Tools.constructPlot(Tools.toFloatArray(temporal), 200), "Temporal");
 
 		final int trainingPoints = 200;
 		
@@ -68,7 +61,7 @@ public class Main {
 		
 		Genetizer<BasicNetworkStructure> genetizer = new Genetizer<BasicNetworkStructure>(new GeneticAlgorithmSettings(0.5, 0.05, 0.5, 0.1), population, rc);
 		
-		for (int i=0; i<20; ++i) {
+		for (int i=0; i<2; ++i) {
 			System.out.println("Generation "+i+":");
 			for (EvolvableFitness<BasicNetworkStructure> f: genetizer.getGenerationFitnesses()) {
 				System.out.println(f.getEvolvable()+" = "+f.getFitness());
@@ -79,6 +72,66 @@ public class Main {
 		EvolvableFitness<BasicNetworkStructure> best = genetizer.getGenerationFitnesses().get(0);
 		System.out.println("-----------------------------------------------------------");
 		System.out.println("Najlepsza siec ma theoretic fitness "+best.getFitness()+" i test fitness "+evaluateAndVisualize(best.getEvolvable(), true, trainingPoints, temporal));
+	}
+
+	public static double[] fibonacci() {
+		double[] ret = new double[800];
+		double current = 0.0;
+		int n1 = 1;
+		int n2 = 1;
+		int fi = 0;
+		for (int i=0; i<ret.length; ++i) {
+			if (fi < n2) {
+				++fi;
+			} else {
+				int nn = n1+n2;
+				n1 = n2;
+				n2 = nn;
+				fi = 0;
+				current = 1.0 - current;
+			}
+			ret[i] = current;
+		}
+		return ret;
+	}
+
+	public static double[] expanding() {
+		double[] ret = new double[800];
+		double current = 0.0;
+		int n = 10;
+		int fi = 0;
+		for (int i=0; i<ret.length; ++i) {
+			if (fi < n) {
+				++fi;
+			} else {
+				n = n*11/10;
+				fi = 0;
+				current = 1.0 - current;
+			}
+			ret[i] = current;
+		}
+		return ret;
+	}
+	
+	public static double[] disturbedSine() {
+		double[] ret = new double[800];
+		for (int i=0; i<ret.length; ++i) {
+			ret[i] = 0.1*((Math.sin(i/20.0)+1)/2.0) + Math.random()*0.9;
+		}
+		return ret;
+	}
+
+	public static double[] mackeyGlass() {
+		double[] mgts = new double[1000];
+		
+		int tau = 20;
+		for (int i=0; i<mgts.length; ++i) {
+			mgts[i] = i-1 < tau ? 0.6 : 0.9*mgts[i-1]+(0.2*mgts[i-1-tau])/(1+Math.pow(mgts[i-1-tau], 10.0));
+		}
+		double[] stable = new double[800];
+		System.arraycopy(mgts, mgts.length-stable.length, stable, 0, stable.length);
+		final double[] temporal = Tools.normalizeHalf(stable);
+		return temporal;
 	}
 	
 	private static int randomize(int from, double by) {
