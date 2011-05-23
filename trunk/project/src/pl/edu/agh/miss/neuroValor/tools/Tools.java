@@ -163,7 +163,9 @@ public class Tools {
 		});
 	}
 	
-	public static BufferedImage constructPlot(float[] vs, int verticalResolution) {
+	public static BufferedImage constructPlot(float[] vs, int verticalResolution, int... colorChanges) {
+		Color[] colors = new Color[] {new Color(0.2f, 0.2f, 0.8f, 0.5f), new Color(0.8f, 0.2f, 0.2f, 0.5f), new Color(0.2f, 0.8f, 0.2f, 0.5f), new Color(0.8f, 0.8f, 0.2f, 0.5f)};
+		
 		BufferedImage ret = new BufferedImage(vs.length+2*LEGEND_WIDTH+LEGEND_FONT_HEIGHT, verticalResolution+2*LEGEND_FONT_HEIGHT, BufferedImage.TYPE_INT_ARGB);
 		Graphics g = ret.getGraphics();
 		
@@ -184,14 +186,18 @@ public class Tools {
 		}
 		int bottom = 2*verticalResolution-LEGEND_FONT_HEIGHT*(helpers-2);
 		int prevY = -1;
+		int current = 0;
 		for (int i=0; i<vs.length; ++i) {
+			if (current < colorChanges.length && i == colorChanges[current]) {
+				++current;
+			}
 			int y = (int) (0.5f+bottom-verticalResolution*(vs[i]-min)/(max-min));
 			if (prevY != -1) {
-				g.setColor(new Color(0.2f, 0.2f, 0.9f, 0.8f));
+				g.setColor(colors[current].darker());
 				g.drawLine(LEGEND_WIDTH+i-1, prevY, LEGEND_WIDTH+i, y);
 			}
 			prevY = y;
-			g.setColor(new Color(0.2f, 0.2f, 0.8f, 0.5f));
+			g.setColor(colors[current]);
 			g.drawLine(LEGEND_WIDTH+i, bottom, LEGEND_WIDTH+i, y);
 		}
 		g.dispose();
@@ -496,6 +502,15 @@ public class Tools {
 			ret[i] = (float) r;
 		}
 		return ret;
+	}
+
+	public static BufferedImage tintPlot(BufferedImage plot, int from, int color) {
+		for (int x=from; x<plot.getWidth(); ++x) {
+			for (int y=0; y<plot.getHeight(); ++y) {
+				plot.setRGB(x, y, plot.getRGB(x, y) - color);
+			}
+		}
+		return plot;
 	}
 
 }
