@@ -513,4 +513,44 @@ public class Tools {
 		return plot;
 	}
 
+	public static double[] normalizeHalf(double[] stable) {
+		double[] ret = Arrays.copyOf(stable, stable.length);
+		double max = Double.NEGATIVE_INFINITY;
+		double min = Double.POSITIVE_INFINITY;
+		for (int i=0; i<ret.length; ++i) {
+			max = Math.max(ret[i], max);
+			min = Math.min(ret[i], min);
+		}
+		double zero = (min+max)/2.0;
+		double edge = max-min;
+		for (int i=0; i<ret.length; ++i) {
+			ret[i] = 0.5+(ret[i]-zero)/edge;
+		}
+		return ret;
+	}
+
+	public static double[] normalize(double[] stable) {
+		double[] ret = Arrays.copyOf(stable, stable.length);
+		double max = Double.NEGATIVE_INFINITY;
+		double min = Double.POSITIVE_INFINITY;
+		for (int i=0; i<ret.length; ++i) {
+			max = Math.max(ret[i], max);
+			min = Math.min(ret[i], min);
+		}
+		double zero = (min+max)/2.0;
+		double edge = (max-min)/2.0;
+		for (int i=0; i<ret.length; ++i) {
+			ret[i] = (ret[i]-zero)/edge;
+		}
+		return ret;
+	}
+
+	public static double[] toSignum(double[] ds) {
+		double[] ret = Arrays.copyOf(ds, ds.length);
+		for (int i=0; i<ret.length; ++i) {
+			ret[i] = ret[i] > 0.0 ? 1.0 : (ret[i] < 0.0 ? 0.0 : 0.5);
+		}
+		return ret;
+	}
+
 }
