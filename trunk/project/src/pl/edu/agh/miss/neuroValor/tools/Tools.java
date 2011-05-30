@@ -100,7 +100,7 @@ public class Tools {
 				double low = Double.valueOf(split[4]);
 				double close = Double.valueOf(split[5]);
 				double vol = Double.valueOf(split[6]);
-				CandleStick now = new CandleStick(open, high, low, close, vol, before);
+				CandleStick now = new CandleStick(open, high, low, close, vol, before.getCloned());
 				before = now;
 				vs.add(now);
 				if (vs.size() >= limit) {

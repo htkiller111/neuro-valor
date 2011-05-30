@@ -1,6 +1,10 @@
 package pl.edu.agh.miss.neuroValor.tools;
 
-public class CandleStick {
+import java.io.Serializable;
+
+public class CandleStick implements Serializable {
+
+	private static final long serialVersionUID = -8787726179364163626L;
 
 	private static final double CHANGE_THRESHOLD = 0.01;
 	public static final int FACTORS = 6;
@@ -92,6 +96,10 @@ public class CandleStick {
 	
 	public double getVolumeValue() {
 		return vol;
+	}
+
+	public CandleStick getCloned() {
+		return new CandleStick(open, high, low, close, vol, null);
 	}
 
 }
