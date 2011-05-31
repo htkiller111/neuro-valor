@@ -1,0 +1,1 @@
+$JAVA_HOME/bin/java -cp lib/dee.jar com.jkgh.dee.server.ServerStarter localhost 44444
