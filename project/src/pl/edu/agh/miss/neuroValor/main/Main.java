@@ -335,7 +335,7 @@ public class Main {
 		};
 
 		RemoteComputationDispatcherConnection rc = new RemoteComputationDispatcherConnection(
-				"wierzba.ki.agh.edu.pl", 44444);
+				"student.agh.edu.pl", 44444);
 		List<BasicNetworkStructure> population = new ArrayList<BasicNetworkStructure>();
 		for (int i = 0; i < NEURONNET_POPULATION_SIZE; ++i) {
 			population.add(new BasicNetworkStructure(evaluator, randomize(20,
@@ -344,10 +344,10 @@ public class Main {
 		}
 
 		Genetizer<BasicNetworkStructure> genetizer = new Genetizer<BasicNetworkStructure>(
-				new GeneticAlgorithmSettings(0.5, 0.05, 0.5, 0.1), population,
+				new GeneticAlgorithmSettings(0.5, 0.05, 0.5, 0.5), population,
 				rc);
 
-		for (int i = 0; i < 2; ++i) {
+		for (int i = 0; i < 1000; ++i) {
 			System.out.println("Generation " + i + ":");
 			for (EvolvableFitness<BasicNetworkStructure> f : genetizer
 					.getGenerationFitnesses()) {
