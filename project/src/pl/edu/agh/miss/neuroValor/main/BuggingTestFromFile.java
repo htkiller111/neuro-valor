@@ -18,13 +18,8 @@ import org.encog.util.simple.EncogUtility;
 import pl.edu.agh.miss.neuroValor.genetics.BasicNetworkEvaluator;
 import pl.edu.agh.miss.neuroValor.genetics.BasicNetworkStats;
 import pl.edu.agh.miss.neuroValor.genetics.BasicNetworkStructure;
-import pl.edu.agh.miss.neuroValor.genetics.GeneticAlgorithmSettings;
-import pl.edu.agh.miss.neuroValor.genetics.Genetizer;
-import pl.edu.agh.miss.neuroValor.genetics.Genetizer.EvolvableFitness;
 import pl.edu.agh.miss.neuroValor.tools.CandleStick;
 import pl.edu.agh.miss.neuroValor.tools.Tools;
-
-import com.jkgh.dee.client.RemoteComputationDispatcherConnection;
 
 public class BuggingTestFromFile {
 
@@ -223,23 +218,55 @@ public class BuggingTestFromFile {
 				171, true));
 		basicNetworkStructures.add(new BasicNetworkStructure(evaluator, 6, 39,
 				176, false));
-		
-		// TODO belowe is just copy from other main FIXME
 
-		RemoteComputationDispatcherConnection rc = new RemoteComputationDispatcherConnection(
-				"student.agh.edu.pl", 44444);
+		double prediction = 0.0;
+		double fitnessSum = 0.0;
+		for (BasicNetworkStructure bns : basicNetworkStructures) {
+			double fitness = bns.computeFitness();
 
-		Genetizer<BasicNetworkStructure> genetizer = new Genetizer<BasicNetworkStructure>(
-				new GeneticAlgorithmSettings(0.5, 0.05, 0.5, 0.5),
-				basicNetworkStructures, rc);
-
-		for (int i = 0; i < 1000; ++i) {
-			System.out.println("Generation " + i + ":");
-			for (EvolvableFitness<BasicNetworkStructure> f : genetizer
-					.getGenerationFitnesses()) {
-				System.out.println(f.getEvolvable() + " = " + f.getFitness());
+			double[] in = new double[CandleStick.FACTORS * bns.getInputCount()];
+			for (int j = sticks.size() - bns.getInputCount(); j < sticks.size(); ++j) {
+				in[CandleStick.FACTORS * (j - sticks.size()
+						+ bns.getInputCount())] = sticks.get(j)
+						.getBlackDojiWhite();
+				in[CandleStick.FACTORS * (j - sticks.size()
+						+ bns.getInputCount()) + 1] = sticks.get(j)
+						.getBodyShortNeutralLong();
+				in[CandleStick.FACTORS * (j - sticks.size()
+						+ bns.getInputCount()) + 2] = sticks.get(j)
+						.getHighShadeShortNeutralLong();
+				in[CandleStick.FACTORS * (j - sticks.size()
+						+ bns.getInputCount()) + 3] = sticks.get(j)
+						.getLowShadeShortNeutralLong();
+				in[CandleStick.FACTORS *  (j - sticks.size()
+						+ bns.getInputCount()) + 4] = sticks.get(j)
+						.getVolumeLowNeutralHigh();
+				in[CandleStick.FACTORS * (j - sticks.size()
+						+ bns.getInputCount()) + 5] = sticks.get(j)
+						.getLowerSameHigher();
 			}
-			genetizer.step();
+
+			BasicNetwork nn = EncogUtility.simpleFeedForward(
+					CandleStick.FACTORS * bns.getInputCount(), bns
+							.getFirstCount(), bns.getSecondCount(), 1, false);
+
+			double[] out = new double[1];
+			nn.compute(in, out);
+			
+			if (fitness < 0) {
+				fitness = -fitness;
+				out[0] = 1-out[0];
+			}
+			fitnessSum += fitness;
+			
+			prediction += fitness*out[0];
+
+			System.out.println(bns + " ma fitness " + fitness
+					+ " i daje wynik " + out[0]);
 		}
+
+		prediction /= fitnessSum;
+
+		System.out.println("Prediction: " + prediction);
 	}
 }
