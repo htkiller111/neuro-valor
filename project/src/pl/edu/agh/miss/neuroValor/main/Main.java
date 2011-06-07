@@ -16,6 +16,7 @@ import org.encog.neural.networks.training.strategy.end.EndIterationsStrategy;
 import org.encog.util.simple.EncogUtility;
 
 import pl.edu.agh.miss.neuroValor.genetics.BasicNetworkEvaluator;
+import pl.edu.agh.miss.neuroValor.genetics.BasicNetworkStats;
 import pl.edu.agh.miss.neuroValor.genetics.BasicNetworkStructure;
 import pl.edu.agh.miss.neuroValor.genetics.GeneticAlgorithmSettings;
 import pl.edu.agh.miss.neuroValor.genetics.Genetizer;
@@ -30,61 +31,64 @@ public class Main {
 	private static final int NEURONNET_POPULATION_SIZE = 20;
 	private static final int EVALUATION_TRIES = 3;
 
-	public static void main2(String[] args) throws Exception {
-
-		final double[] temporal = disturbedSine();
-		Tools.showPlot(Tools.constructPlot(Tools.toFloatArray(temporal), 200),
-				"Temporal");
-
-		final int trainingPoints = 200;
-
-		BasicNetworkEvaluator evaluator = new BasicNetworkEvaluator() {
-
-			private static final long serialVersionUID = 92836491222L;
-
-			@Override
-			public double evalute(BasicNetworkStructure bns) {
-				double ret = 0.0;
-				for (int i = 0; i < EVALUATION_TRIES; ++i) {
-					ret += evaluateAndVisualize(bns, false, trainingPoints,
-							temporal);
-				}
-				return ret / EVALUATION_TRIES;
-			}
-
-		};
-
-		RemoteComputationDispatcherConnection rc = new RemoteComputationDispatcherConnection(
-				"127.0.0.1", 44444);
-		List<BasicNetworkStructure> population = new ArrayList<BasicNetworkStructure>();
-		for (int i = 0; i < NEURONNET_POPULATION_SIZE; ++i) {
-			population.add(new BasicNetworkStructure(evaluator, randomize(100,
-					0.8), randomize(100, 0.8), randomize(100, 0.8), false));
-		}
-
-		Genetizer<BasicNetworkStructure> genetizer = new Genetizer<BasicNetworkStructure>(
-				new GeneticAlgorithmSettings(0.5, 0.05, 0.5, 0.1), population,
-				rc);
-
-		for (int i = 0; i < 2; ++i) {
-			System.out.println("Generation " + i + ":");
-			for (EvolvableFitness<BasicNetworkStructure> f : genetizer
-					.getGenerationFitnesses()) {
-				System.out.println(f.getEvolvable() + " = " + f.getFitness());
-			}
-			genetizer.step();
-		}
-
-		EvolvableFitness<BasicNetworkStructure> best = genetizer
-				.getGenerationFitnesses().get(0);
-		System.out
-				.println("-----------------------------------------------------------");
-		System.out.println("Najlepsza siec ma theoretic fitness "
-				+ best.getFitness()
-				+ " i test fitness "
-				+ evaluateAndVisualize(best.getEvolvable(), true,
-						trainingPoints, temporal));
-	}
+	// public static void main2(String[] args) throws Exception {
+	//
+	// final double[] temporal = disturbedSine();
+	// Tools.showPlot(Tools.constructPlot(Tools.toFloatArray(temporal), 200),
+	// "Temporal");
+	//
+	// final int trainingPoints = 200;
+	//
+	// BasicNetworkEvaluator evaluator = new BasicNetworkEvaluator() {
+	//
+	// private static final long serialVersionUID = 92836491222L;
+	//
+	// @Override
+	// public double evalute(BasicNetworkStructure bns) {
+	// double ret = 0.0;
+	// for (int i = 0; i < EVALUATION_TRIES; ++i) {
+	// ret += evaluateAndVisualize(bns, false, trainingPoints,
+	// temporal);
+	// }
+	// return ret / EVALUATION_TRIES;
+	// }
+	//
+	// };
+	//
+	// RemoteComputationDispatcherConnection rc = new
+	// RemoteComputationDispatcherConnection(
+	// "127.0.0.1", 44444);
+	// List<BasicNetworkStructure> population = new
+	// ArrayList<BasicNetworkStructure>();
+	// for (int i = 0; i < NEURONNET_POPULATION_SIZE; ++i) {
+	// population.add(new BasicNetworkStructure(evaluator, randomize(100,
+	// 0.8), randomize(100, 0.8), randomize(100, 0.8), false));
+	// }
+	//
+	// Genetizer<BasicNetworkStructure> genetizer = new
+	// Genetizer<BasicNetworkStructure>(
+	// new GeneticAlgorithmSettings(0.5, 0.05, 0.5, 0.1), population,
+	// rc);
+	//
+	// for (int i = 0; i < 2; ++i) {
+	// System.out.println("Generation " + i + ":");
+	// for (EvolvableFitness<BasicNetworkStructure> f : genetizer
+	// .getGenerationFitnesses()) {
+	// System.out.println(f.getEvolvable() + " = " + f.getFitness());
+	// }
+	// genetizer.step();
+	// }
+	//
+	// EvolvableFitness<BasicNetworkStructure> best = genetizer
+	// .getGenerationFitnesses().get(0);
+	// System.out
+	// .println("-----------------------------------------------------------");
+	// System.out.println("Najlepsza siec ma theoretic fitness "
+	// + best.getFitness()
+	// + " i test fitness "
+	// + evaluateAndVisualize(best.getEvolvable(), true,
+	// trainingPoints, temporal));
+	// }
 
 	public static double[] fibonacci() {
 		double[] ret = new double[800];
@@ -224,112 +228,118 @@ public class Main {
 		BasicNetworkEvaluator evaluator = new BasicNetworkEvaluator() {
 
 			private static final long serialVersionUID = -406486340129467301L;
+			private BasicNetworkStats basicNetworkStats;
 
 			@Override
 			public double evalute(BasicNetworkStructure bnn) {
-				double ret = 0.0;
-				for (int et = 0; et < EVALUATION_TRIES; ++et) {
 
-					int waiting = 7;
-					int tests = 100;
+				int waiting = 7;
+				int tests = 100;
+				int ret = 0;
 
-					BasicNetwork nn = EncogUtility.simpleFeedForward(
-							CandleStick.FACTORS * bnn.getInputCount(), bnn
-									.getFirstCount(), bnn.getSecondCount(), 1,
-							false);
+				BasicNetwork nn = EncogUtility.simpleFeedForward(
+						CandleStick.FACTORS * bnn.getInputCount(), bnn
+								.getFirstCount(), bnn.getSecondCount(), 1,
+						false);
 
-					int trainingPoints = sticks.size() - 1 - waiting - tests
-							- bnn.getInputCount();
-					double[][] in = new double[trainingPoints][];
-					double[][] out = new double[in.length][];
-					for (int i = 0; i < in.length; ++i) {
-						double[] ini = new double[CandleStick.FACTORS
-								* bnn.getInputCount()];
-						for (int j = 0; j < bnn.getInputCount(); ++j) {
-							ini[CandleStick.FACTORS * j] = sticks.get(i + j)
-									.getBlackDojiWhite();
-							ini[CandleStick.FACTORS * j + 1] = sticks
-									.get(i + j).getBodyShortNeutralLong();
-							ini[CandleStick.FACTORS * j + 2] = sticks
-									.get(i + j).getHighShadeShortNeutralLong();
-							ini[CandleStick.FACTORS * j + 3] = sticks
-									.get(i + j).getLowShadeShortNeutralLong();
-							ini[CandleStick.FACTORS * j + 4] = sticks
-									.get(i + j).getVolumeLowNeutralHigh();
-							ini[CandleStick.FACTORS * j + 5] = sticks
-									.get(i + j).getLowerSameHigher();
-						}
-
-						double neededLevel = 1.01 * sticks.get(
-								i + bnn.getInputCount() - 1).getCloseValue();
-						boolean returned = false;
-						for (int j = 0; j < waiting; ++j) {
-							if (sticks.get(i + bnn.getInputCount() + j)
-									.getCloseValue() > neededLevel) {
-								returned = true;
-								break;
-							}
-						}
-
-						in[i] = ini;
-						out[i] = new double[] { returned ? 1.0 : 0.0 };
+				int trainingPoints = sticks.size() - 1 - waiting - tests
+						- bnn.getInputCount();
+				double[][] in = new double[trainingPoints][];
+				double[][] out = new double[in.length][];
+				for (int i = 0; i < in.length; ++i) {
+					double[] ini = new double[CandleStick.FACTORS
+							* bnn.getInputCount()];
+					for (int j = 0; j < bnn.getInputCount(); ++j) {
+						ini[CandleStick.FACTORS * j] = sticks.get(i + j)
+								.getBlackDojiWhite();
+						ini[CandleStick.FACTORS * j + 1] = sticks.get(i + j)
+								.getBodyShortNeutralLong();
+						ini[CandleStick.FACTORS * j + 2] = sticks.get(i + j)
+								.getHighShadeShortNeutralLong();
+						ini[CandleStick.FACTORS * j + 3] = sticks.get(i + j)
+								.getLowShadeShortNeutralLong();
+						ini[CandleStick.FACTORS * j + 4] = sticks.get(i + j)
+								.getVolumeLowNeutralHigh();
+						ini[CandleStick.FACTORS * j + 5] = sticks.get(i + j)
+								.getLowerSameHigher();
 					}
 
-					NeuralDataSet dataSet = new BasicNeuralDataSet(in, out);
-					Train train = new ResilientPropagation(nn, dataSet);
-					train.addStrategy(new StopTrainingStrategy(0.0001, 10));
-					train.addStrategy(new EndIterationsStrategy(227));
-					EncogUtility.trainToError(train, nn, dataSet, 0.00001);
-
-					int oks = 0;
-					int wrongs = 0;
-
-					for (int i = trainingPoints; i < sticks.size()
-							- bnn.getInputCount() - waiting - 1; ++i) {
-						double[] testIn = new double[CandleStick.FACTORS
-								* bnn.getInputCount()];
-						for (int j = 0; j < bnn.getInputCount(); ++j) {
-							testIn[CandleStick.FACTORS * j] = sticks.get(i + j)
-									.getBlackDojiWhite();
-							testIn[CandleStick.FACTORS * j + 1] = sticks.get(
-									i + j).getBodyShortNeutralLong();
-							testIn[CandleStick.FACTORS * j + 2] = sticks.get(
-									i + j).getHighShadeShortNeutralLong();
-							testIn[CandleStick.FACTORS * j + 3] = sticks.get(
-									i + j).getLowShadeShortNeutralLong();
-							testIn[CandleStick.FACTORS * j + 4] = sticks.get(
-									i + j).getVolumeLowNeutralHigh();
-							testIn[CandleStick.FACTORS * j + 5] = sticks.get(
-									i + j).getLowerSameHigher();
-						}
-						double neededLevel = 1.01 * sticks.get(
-								i + bnn.getInputCount() - 1).getCloseValue();
-						boolean returned = false;
-						for (int j = 0; j < waiting; ++j) {
-							if (sticks.get(i + bnn.getInputCount() + waiting)
-									.getCloseValue() > neededLevel) {
-								returned = true;
-								break;
-							}
-						}
-						double[] testOut = new double[] { returned ? 1.0 : 0.0 };
-						double[] predictedOut = new double[1];
-
-						nn.compute(testIn, predictedOut);
-
-						double threshold = 0.25;
-						if (Math.abs(predictedOut[0] - 0.5) > threshold) {
-							boolean ok = (predictedOut[0] > 0.5 ? 1.0 : 0.0) == testOut[0];
-							if (ok) {
-								++oks;
-							} else {
-								++wrongs;
-							}
+					double neededLevel = 1.01 * sticks.get(
+							i + bnn.getInputCount() - 1).getCloseValue();
+					boolean returned = false;
+					for (int j = 0; j < waiting; ++j) {
+						if (sticks.get(i + bnn.getInputCount() + j)
+								.getCloseValue() > neededLevel) {
+							returned = true;
+							break;
 						}
 					}
-					ret += oks - wrongs;
+
+					in[i] = ini;
+					out[i] = new double[] { returned ? 1.0 : 0.0 };
 				}
-				return ret / (double) EVALUATION_TRIES;
+
+				NeuralDataSet dataSet = new BasicNeuralDataSet(in, out);
+				Train train = new ResilientPropagation(nn, dataSet);
+				train.addStrategy(new StopTrainingStrategy(0.0001, 10));
+				train.addStrategy(new EndIterationsStrategy(227));
+				EncogUtility.trainToError(train, nn, dataSet, 0.00001);
+
+				int oks = 0;
+				int wrongs = 0;
+
+				for (int i = trainingPoints; i < sticks.size()
+						- bnn.getInputCount() - waiting - 1; ++i) {
+					double[] testIn = new double[CandleStick.FACTORS
+							* bnn.getInputCount()];
+					for (int j = 0; j < bnn.getInputCount(); ++j) {
+						testIn[CandleStick.FACTORS * j] = sticks.get(i + j)
+								.getBlackDojiWhite();
+						testIn[CandleStick.FACTORS * j + 1] = sticks.get(i + j)
+								.getBodyShortNeutralLong();
+						testIn[CandleStick.FACTORS * j + 2] = sticks.get(i + j)
+								.getHighShadeShortNeutralLong();
+						testIn[CandleStick.FACTORS * j + 3] = sticks.get(i + j)
+								.getLowShadeShortNeutralLong();
+						testIn[CandleStick.FACTORS * j + 4] = sticks.get(i + j)
+								.getVolumeLowNeutralHigh();
+						testIn[CandleStick.FACTORS * j + 5] = sticks.get(i + j)
+								.getLowerSameHigher();
+					}
+					double neededLevel = 1.01 * sticks.get(
+							i + bnn.getInputCount() - 1).getCloseValue();
+					boolean returned = false;
+					for (int j = 0; j < waiting; ++j) {
+						if (sticks.get(i + bnn.getInputCount() + waiting)
+								.getCloseValue() > neededLevel) {
+							returned = true;
+							break;
+						}
+					}
+					double[] testOut = new double[] { returned ? 1.0 : 0.0 };
+					double[] predictedOut = new double[1];
+
+					nn.compute(testIn, predictedOut);
+
+					double threshold = 0.25;
+					if (Math.abs(predictedOut[0] - 0.5) > threshold) {
+						boolean ok = (predictedOut[0] > 0.5 ? 1.0 : 0.0) == testOut[0];
+						if (ok) {
+							++oks;
+						} else {
+							++wrongs;
+						}
+					}
+				}
+				ret += oks - wrongs;
+				basicNetworkStats = new BasicNetworkStats(oks, wrongs, tests);
+				return ret;
+
+			}
+
+			@Override
+			public BasicNetworkStats getBasicNetworkStats() {
+				return basicNetworkStats;
 			}
 
 		};
