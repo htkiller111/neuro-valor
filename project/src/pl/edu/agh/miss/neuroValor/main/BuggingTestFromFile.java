@@ -2,6 +2,7 @@ package pl.edu.agh.miss.neuroValor.main;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
@@ -16,7 +17,6 @@ import org.encog.neural.networks.training.strategy.end.EndIterationsStrategy;
 import org.encog.util.simple.EncogUtility;
 
 import pl.edu.agh.miss.neuroValor.genetics.BasicNetworkEvaluator;
-import pl.edu.agh.miss.neuroValor.genetics.BasicNetworkStats;
 import pl.edu.agh.miss.neuroValor.genetics.BasicNetworkStructure;
 import pl.edu.agh.miss.neuroValor.tools.CandleStick;
 import pl.edu.agh.miss.neuroValor.tools.Tools;
@@ -34,14 +34,13 @@ public class BuggingTestFromFile {
 		List<BasicNetworkStructure> basicNetworkStructures = new ArrayList<BasicNetworkStructure>();
 
 		List<CandleStick> allSticks = Tools.loadMSTToSubsequentValues(new File(
-				"data/KREZUS.mst"));
+				"data/OPTIMUS.mst"));
 		final List<CandleStick> sticks = new ArrayList<CandleStick>(allSticks
 				.subList(allSticks.size() - 1000, allSticks.size()));
 
 		BasicNetworkEvaluator evaluator = new BasicNetworkEvaluator() {
 
 			private static final long serialVersionUID = -406486340129467301L;
-			private BasicNetworkStats basicNetworkStats;
 
 			@Override
 			public double evalute(BasicNetworkStructure bnn) {
@@ -145,14 +144,8 @@ public class BuggingTestFromFile {
 					}
 				}
 				ret += oks - wrongs;
-				basicNetworkStats = new BasicNetworkStats(oks, wrongs, tests);
 				return ret;
 
-			}
-
-			@Override
-			public BasicNetworkStats getBasicNetworkStats() {
-				return basicNetworkStats;
 			}
 
 		};
@@ -219,6 +212,7 @@ public class BuggingTestFromFile {
 		basicNetworkStructures.add(new BasicNetworkStructure(evaluator, 6, 39,
 				176, false));
 
+		PrintStream syso = new PrintStream(new File("c:\\out.txt"));
 		double prediction = 0.0;
 		double fitnessSum = 0.0;
 		for (BasicNetworkStructure bns : basicNetworkStructures) {
@@ -261,7 +255,7 @@ public class BuggingTestFromFile {
 			
 			prediction += fitness*out[0];
 
-			System.out.println(bns + " ma fitness " + fitness
+			syso.println(bns + " ma fitness " + fitness
 					+ " i daje wynik " + out[0]);
 		}
 

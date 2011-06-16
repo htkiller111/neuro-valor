@@ -5,7 +5,7 @@ public class BasicNetworkStats {
 	private final int okCount;
 	private final int wrongCount;
 
-	public BasicNetworkStats(int okCount, int wrongCount, int unknownCount) {
+	public BasicNetworkStats(int okCount, int wrongCount) {
 		this.wrongCount = wrongCount;
 		this.okCount = okCount;
 	}

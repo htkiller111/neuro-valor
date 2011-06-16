@@ -16,7 +16,6 @@ import org.encog.neural.networks.training.strategy.end.EndIterationsStrategy;
 import org.encog.util.simple.EncogUtility;
 
 import pl.edu.agh.miss.neuroValor.genetics.BasicNetworkEvaluator;
-import pl.edu.agh.miss.neuroValor.genetics.BasicNetworkStats;
 import pl.edu.agh.miss.neuroValor.genetics.BasicNetworkStructure;
 import pl.edu.agh.miss.neuroValor.genetics.GeneticAlgorithmSettings;
 import pl.edu.agh.miss.neuroValor.genetics.Genetizer;
@@ -221,32 +220,38 @@ public class Main {
 			InvocationTargetException {
 
 		List<CandleStick> allSticks = Tools.loadMSTToSubsequentValues(new File(
-				"data/KREZUS.mst"));
+				"data/WIG.mst"));
 		final List<CandleStick> sticks = new ArrayList<CandleStick>(allSticks
-				.subList(allSticks.size() - 1000, allSticks.size()));
+				.subList(allSticks.size() - 4000, allSticks.size()));
 
 		BasicNetworkEvaluator evaluator = new BasicNetworkEvaluator() {
 
 			private static final long serialVersionUID = -406486340129467301L;
-			private BasicNetworkStats basicNetworkStats;
 
 			@Override
 			public double evalute(BasicNetworkStructure bnn) {
 
 				int waiting = 7;
 				int tests = 100;
-				int ret = 0;
 
 				BasicNetwork nn = EncogUtility.simpleFeedForward(
 						CandleStick.FACTORS * bnn.getInputCount(), bnn
 								.getFirstCount(), bnn.getSecondCount(), 1,
 						false);
-
-				int trainingPoints = sticks.size() - 1 - waiting - tests
+				
+				int trainingPoints = sticks.size() - 1 - waiting
 						- bnn.getInputCount();
-				double[][] in = new double[trainingPoints][];
+				double[][] in = new double[trainingPoints-tests][];
 				double[][] out = new double[in.length][];
-				for (int i = 0; i < in.length; ++i) {
+				
+				double[][] inTest = new double[tests][];
+				double[][] outTest = new double[inTest.length][];
+				
+				int testsFrom = (int) (Math.random()*(trainingPoints-tests));
+				int t = 0;
+				int c = 0;
+								
+				for (int i = 0; i < trainingPoints; ++i) {
 					double[] ini = new double[CandleStick.FACTORS
 							* bnn.getInputCount()];
 					for (int j = 0; j < bnn.getInputCount(); ++j) {
@@ -275,11 +280,19 @@ public class Main {
 						}
 					}
 
-					in[i] = ini;
-					out[i] = new double[] { returned ? 1.0 : 0.0 };
+					if (i>=testsFrom && i<testsFrom+tests) {
+						inTest[c] = ini;
+						outTest[c] = new double[] { returned ? 1.0 : 0.0 };
+						++c;
+					} else {
+						in[t] = ini;
+						out[t] = new double[] { returned ? 1.0 : 0.0 };
+						++t;
+					}
 				}
 
 				NeuralDataSet dataSet = new BasicNeuralDataSet(in, out);
+				
 				Train train = new ResilientPropagation(nn, dataSet);
 				train.addStrategy(new StopTrainingStrategy(0.0001, 10));
 				train.addStrategy(new EndIterationsStrategy(227));
@@ -288,64 +301,30 @@ public class Main {
 				int oks = 0;
 				int wrongs = 0;
 
-				for (int i = trainingPoints; i < sticks.size()
-						- bnn.getInputCount() - waiting - 1; ++i) {
-					double[] testIn = new double[CandleStick.FACTORS
-							* bnn.getInputCount()];
-					for (int j = 0; j < bnn.getInputCount(); ++j) {
-						testIn[CandleStick.FACTORS * j] = sticks.get(i + j)
-								.getBlackDojiWhite();
-						testIn[CandleStick.FACTORS * j + 1] = sticks.get(i + j)
-								.getBodyShortNeutralLong();
-						testIn[CandleStick.FACTORS * j + 2] = sticks.get(i + j)
-								.getHighShadeShortNeutralLong();
-						testIn[CandleStick.FACTORS * j + 3] = sticks.get(i + j)
-								.getLowShadeShortNeutralLong();
-						testIn[CandleStick.FACTORS * j + 4] = sticks.get(i + j)
-								.getVolumeLowNeutralHigh();
-						testIn[CandleStick.FACTORS * j + 5] = sticks.get(i + j)
-								.getLowerSameHigher();
-					}
-					double neededLevel = 1.01 * sticks.get(
-							i + bnn.getInputCount() - 1).getCloseValue();
-					boolean returned = false;
-					for (int j = 0; j < waiting; ++j) {
-						if (sticks.get(i + bnn.getInputCount() + waiting)
-								.getCloseValue() > neededLevel) {
-							returned = true;
-							break;
-						}
-					}
-					double[] testOut = new double[] { returned ? 1.0 : 0.0 };
+				for (int i = 0; i<tests; ++i) {
+					
 					double[] predictedOut = new double[1];
 
-					nn.compute(testIn, predictedOut);
+					nn.compute(inTest[i], predictedOut);
 
 					double threshold = 0.25;
 					if (Math.abs(predictedOut[0] - 0.5) > threshold) {
-						boolean ok = (predictedOut[0] > 0.5 ? 1.0 : 0.0) == testOut[0];
+						boolean ok = (predictedOut[0] > 0.5 ? 1.0 : 0.0) == outTest[i][0];
 						if (ok) {
 							++oks;
 						} else {
 							++wrongs;
 						}
 					}
+					
 				}
-				ret += oks - wrongs;
-				basicNetworkStats = new BasicNetworkStats(oks, wrongs, tests);
-				return ret;
-
+				
+				return oks-wrongs;
 			}
-
-			@Override
-			public BasicNetworkStats getBasicNetworkStats() {
-				return basicNetworkStats;
-			}
-
 		};
 
 		RemoteComputationDispatcherConnection rc = new RemoteComputationDispatcherConnection(
-				"student.agh.edu.pl", 44444);
+				"localhost", 44444);
 		List<BasicNetworkStructure> population = new ArrayList<BasicNetworkStructure>();
 		for (int i = 0; i < NEURONNET_POPULATION_SIZE; ++i) {
 			population.add(new BasicNetworkStructure(evaluator, randomize(20,
