@@ -1,0 +1,1 @@
+NeuroValor is a neural network simulator used in stock market prediction.
